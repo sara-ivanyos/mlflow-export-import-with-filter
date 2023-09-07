@@ -61,10 +61,16 @@ def export_experiments(
         experiments_dct = {}
     else:
         export_all_runs = not isinstance(experiments, dict)
-        experiments = bulk_utils.get_experiments(mlflow_client, experiments)
+        experiments = bulk_utils.get_experiment_names(mlflow_client, experiments)
         if export_all_runs:
+            if experiment_filter:
+                filtered_experiments = []
+                for exp_name in experiments:
+                    if experiment_filter in exp_name:
+                        filtered_experiments.append(exp_name)
+                experiments=filtered_experiments
             table_data = experiments
-            columns = ["Experiment Name", "Expermient ID"]
+            columns = ["Experiment Name"]
             experiments_dct = {}
 
         else:
@@ -74,21 +80,14 @@ def export_experiments(
             num_runs = sum(x[1] for x in table_data)
             table_data.append(["Total",num_runs])
             columns = ["Experiment ID", "# Runs"]
-    #TODO fix columns
-    #utils.show_table("Experiments (unfiltered)",table_data,columns)
+
+    utils.show_table("Experiments",table_data,columns)
     _logger.info("")
 
     ok_runs = 0
     failed_runs = 0
     export_results = []
     futures = []
-
-    if export_all_runs and experiment_filter:
-        filtered_experiments = []
-        for exp_name, exp_id in experiments:
-            if experiment_filter in exp_name:
-                filtered_experiments.append(exp_id)
-        experiments=filtered_experiments
 
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:

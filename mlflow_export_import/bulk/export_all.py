@@ -64,6 +64,13 @@ def export_all(
     all_exp_names = [ exp.name for exp in all_exps ]
     remaining_exp_names = list(set(all_exp_names) - set(exported_exp_names))
 
+    if experiment_filter:
+        filtered_experiments = []
+        for exp_name in remaining_exp_names:
+            if experiment_filter in exp_name:
+                filtered_experiments.append(exp_name)
+        remaining_exp_names=filtered_experiments
+
     res_exps = export_experiments(
         mlflow_client = mlflow_client,
         experiments = remaining_exp_names,
