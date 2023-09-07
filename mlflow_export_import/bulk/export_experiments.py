@@ -17,7 +17,8 @@ from mlflow_export_import.common.click_options import (
     opt_notebook_formats,
     opt_run_start_time,
     opt_export_deleted_runs,
-    opt_use_threads
+    opt_use_threads,
+    opt_experiment_filter
 )
 from mlflow_export_import.common import MlflowExportImportException
 from mlflow_export_import.common import utils, io_utils, mlflow_utils
@@ -34,14 +35,15 @@ def export_experiments(
         export_deleted_runs = False,
         notebook_formats = None,
         use_threads = False,
-        mlflow_client = None
-    ):
+        mlflow_client = None,
+        experiment_filter=None,
+):
     """
     :param experiments: Can be either:
       - File (ending with '.txt') containing list of experiment names or IDS
-      - List of experiment names 
+      - List of experiment names
       - List of experiment IDs
-      - Dictionary whose key is an experiment id and the value is a list of its run IDs 
+      - Dictionary whose key is an experiment id and the value is a list of its run IDs
       - String with comma-delimited experiment names or IDs such as 'sklearn_wine,sklearn_iris' or '1,2'
     :return: Dictionary of summary information
     """
@@ -62,8 +64,9 @@ def export_experiments(
         experiments = bulk_utils.get_experiments(mlflow_client, experiments)
         if export_all_runs:
             table_data = experiments
-            columns = ["Experiment Name", "ID"]
+            columns = ["Experiment Name", "Expermient ID"]
             experiments_dct = {}
+
         else:
             experiments_dct = experiments # we passed in a dict
             experiments = experiments.keys()
@@ -71,32 +74,38 @@ def export_experiments(
             num_runs = sum(x[1] for x in table_data)
             table_data.append(["Total",num_runs])
             columns = ["Experiment ID", "# Runs"]
-    utils.show_table("Experiments",table_data,columns)
+    #TODO fix columns
+    #utils.show_table("Experiments (unfiltered)",table_data,columns)
     _logger.info("")
 
     ok_runs = 0
     failed_runs = 0
     export_results = []
     futures = []
+
+    if export_all_runs and experiment_filter:
+        filtered_experiments = []
+        for exp_name, exp_id in experiments:
+            if experiment_filter in exp_name:
+                filtered_experiments.append(exp_id)
+        experiments=filtered_experiments
+
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for exp_id_or_name in experiments:
-            exp_name, exp_id = exp_id_or_name
-            if "common" in exp_name:
-                _logger.info(f"experiment_name={exp_name}, ")
-                _logger.info(f"experiment_name={exp_id}, ")
-                run_ids = experiments_dct.get(exp_id, None)
-                future = executor.submit(_export_experiment,
-                    mlflow_client,
-                    exp_id,
-                    output_dir,
-                    export_permissions,
-                    notebook_formats,
-                    export_results,
-                    run_start_time,
-                    export_deleted_runs,
-                    run_ids
-                )
-                futures.append(future)
+            run_ids = experiments_dct.get(exp_id_or_name, None)
+            future = executor.submit(_export_experiment,
+                                     mlflow_client,
+                                     exp_id_or_name,
+                                     output_dir,
+                                     export_permissions,
+                                     notebook_formats,
+                                     export_results,
+                                     run_start_time,
+                                     export_deleted_runs,
+                                     run_ids
+                                     )
+            futures.append(future)
     duration = round(time.time() - start_time, 1)
     ok_runs = 0
     failed_runs = 0
@@ -106,7 +115,7 @@ def export_experiments(
         ok_runs += result.ok_runs
         failed_runs += result.failed_runs
         experiment_names.append(result.name)
-    
+
     total_runs = ok_runs + failed_runs
     duration = round(time.time() - start_time, 1)
 
@@ -123,7 +132,7 @@ def export_experiments(
         },
         "status": {
             "duration": duration,
-            "experiments": len(experiments),
+            "experiments": len(experiment_names),
             "total_runs": total_runs,
             "ok_runs": ok_runs,
             "failed_runs": failed_runs
@@ -143,17 +152,17 @@ def export_experiments(
 
     io_utils.write_export_file(output_dir, "experiments.json", __file__, mlflow_attr, info_attr)
 
-    _logger.info(f"{len(experiments)} experiments exported")
+    _logger.info(f"{len(experiment_names)} experiments exported")
     _logger.info(f"{ok_runs}/{total_runs} runs succesfully exported")
     if failed_runs > 0:
         _logger.info(f"{failed_runs}/{total_runs} runs failed")
-    _logger.info(f"Duration for {len(experiments)} experiments export: {duration} seconds")
+    _logger.info(f"Duration for {len(experiment_names)} experiments export: {duration} seconds")
 
     return info_attr
 
 
 def _export_experiment(mlflow_client, exp_id, output_dir, export_permissions, notebook_formats, export_results,
-        run_start_time, export_deleted_runs, run_ids):
+                       run_start_time, export_deleted_runs, run_ids):
     ok_runs = -1; failed_runs = -1
     exp_name = exp_id
     try:
@@ -193,7 +202,7 @@ def _export_experiment(mlflow_client, exp_id, output_dir, export_permissions, no
         err_msg = { "message": "Cannot export experiment", "experiment": exp_name, "Exception": e }
         _logger.error(err_msg)
     return Result(exp_name, ok_runs, failed_runs)
-    
+
 
 def _convert_dict_keys_to_list(obj):
     import collections
@@ -217,8 +226,9 @@ class Result:
 @opt_export_deleted_runs
 @opt_notebook_formats
 @opt_use_threads
+@opt_experiment_filter
 
-def main(experiments, output_dir, export_permissions, run_start_time, export_deleted_runs, notebook_formats, use_threads): 
+def main(experiments, output_dir, export_permissions, run_start_time, export_deleted_runs, notebook_formats, use_threads, experiment_filter):
     _logger.info("Options:")
     for k,v in locals().items():
         _logger.info(f"  {k}: {v}")
@@ -229,7 +239,8 @@ def main(experiments, output_dir, export_permissions, run_start_time, export_del
         run_start_time = run_start_time,
         export_deleted_runs = export_deleted_runs,
         notebook_formats = utils.string_to_list(notebook_formats),
-        use_threads = use_threads
+        use_threads = use_threads,
+        experiment_filter = experiment_filter
     )
 
 
