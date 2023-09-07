@@ -58,11 +58,11 @@ def export_experiments(
         columns = ["Experiment Name or ID"]
         experiments_dct = {}
     else:
-        export_all_runs = not isinstance(experiments, dict) 
-        experiments = bulk_utils.get_experiment_ids(mlflow_client, experiments)
+        export_all_runs = not isinstance(experiments, dict)
+        experiments = bulk_utils.get_experiments(mlflow_client, experiments)
         if export_all_runs:
             table_data = experiments
-            columns = ["Experiment Name or ID"]
+            columns = ["Experiment Name", "ID"]
             experiments_dct = {}
         else:
             experiments_dct = experiments # we passed in a dict
@@ -80,19 +80,23 @@ def export_experiments(
     futures = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for exp_id_or_name in experiments:
-            run_ids = experiments_dct.get(exp_id_or_name, None)
-            future = executor.submit(_export_experiment,
-                mlflow_client, 
-                exp_id_or_name, 
-                output_dir, 
-                export_permissions, 
-                notebook_formats, 
-                export_results, 
-                run_start_time, 
-                export_deleted_runs, 
-                run_ids
-            )
-            futures.append(future)
+            exp_name, exp_id = exp_id_or_name
+            if "common" in exp_name:
+                _logger.info(f"experiment_name={exp_name}, ")
+                _logger.info(f"experiment_name={exp_id}, ")
+                run_ids = experiments_dct.get(exp_id, None)
+                future = executor.submit(_export_experiment,
+                    mlflow_client,
+                    exp_id,
+                    output_dir,
+                    export_permissions,
+                    notebook_formats,
+                    export_results,
+                    run_start_time,
+                    export_deleted_runs,
+                    run_ids
+                )
+                futures.append(future)
     duration = round(time.time() - start_time, 1)
     ok_runs = 0
     failed_runs = 0
@@ -148,12 +152,12 @@ def export_experiments(
     return info_attr
 
 
-def _export_experiment(mlflow_client, exp_id_or_name, output_dir, export_permissions, notebook_formats, export_results, 
+def _export_experiment(mlflow_client, exp_id, output_dir, export_permissions, notebook_formats, export_results,
         run_start_time, export_deleted_runs, run_ids):
     ok_runs = -1; failed_runs = -1
-    exp_name = exp_id_or_name
+    exp_name = exp_id
     try:
-        exp = mlflow_utils.get_experiment(mlflow_client, exp_id_or_name)
+        exp = mlflow_utils.get_experiment(mlflow_client, exp_id)
         exp_name = exp.name
         exp_output_dir = os.path.join(output_dir, exp.experiment_id)
         start_time = time.time()
