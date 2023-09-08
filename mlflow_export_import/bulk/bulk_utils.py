@@ -27,9 +27,9 @@ def get_experiment_ids(mlflow_client, experiment_ids):
     return _get_list(experiment_ids, list_entities)
 
 
-def get_experiment_names(mlflow_client, experiment_names):
+def get_experiment_names(mlflow_client, experiment_names, filter=None):
     def list_entities():
-        return [ exp.name for exp in SearchExperimentsIterator(mlflow_client) ]
+        return [ exp.name for exp in SearchExperimentsIterator(mlflow_client, filter=filter) ]
     return _get_list(experiment_names, list_entities)
 
 
@@ -43,3 +43,5 @@ def get_model_names(mlflow_client, model_names):
     def list_entities():
         return [ model.name for model in SearchRegisteredModelsIterator(mlflow_client) ]
     return _get_list(model_names, list_entities)
+
+

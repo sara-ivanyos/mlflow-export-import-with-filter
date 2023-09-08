@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import click
 import mlflow
 from mlflow.exceptions import RestException
+import re
 
 from mlflow_export_import.common.click_options import (
     opt_experiments,
@@ -61,16 +62,11 @@ def export_experiments(
         experiments_dct = {}
     else:
         export_all_runs = not isinstance(experiments, dict)
-        experiments = bulk_utils.get_experiment_names(mlflow_client, experiments)
+        filter_string = f"name ILIKE '%{experiment_filter}%'" if experiment_filter else None
+        experiments = bulk_utils.get_experiment_names(mlflow_client, experiments, filter=filter_string)
         if export_all_runs:
-            if experiment_filter:
-                filtered_experiments = []
-                for exp_name in experiments:
-                    if experiment_filter in exp_name:
-                        filtered_experiments.append(exp_name)
-                experiments=filtered_experiments
             table_data = experiments
-            columns = ["Experiment Name"]
+            columns = ["Experiment Name or ID"]
             experiments_dct = {}
 
         else:
