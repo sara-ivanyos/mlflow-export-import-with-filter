@@ -56,7 +56,6 @@ def export_all(
         export_version_model = export_version_model,
         notebook_formats = notebook_formats,
         use_threads = use_threads,
-        experiment_filter = experiment_filter
     )
 
     # Only import those experiments not exported by above export_models()

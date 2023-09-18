@@ -18,14 +18,12 @@ from mlflow_export_import.common.click_options import (
     opt_export_version_model,
     opt_notebook_formats,
     opt_use_threads,
-    opt_experiment_filter
 )
 from mlflow_export_import.common import utils, io_utils
 from mlflow_export_import.model.export_model import export_model
 from mlflow_export_import.bulk import export_experiments
 from mlflow_export_import.bulk.model_utils import get_experiments_runs_of_models
 from mlflow_export_import.bulk import bulk_utils
-from mlflow_export_import.common.iterators import SearchExperimentsIterator
 
 _logger = utils.getLogger(__name__)
 
@@ -42,7 +40,6 @@ def export_models(
         notebook_formats = None,
         use_threads = False,
         mlflow_client = None,
-        experiment_filter = None
     ):
     """
     :param: model_names: Can be either:
@@ -62,11 +59,6 @@ def export_models(
     start_time = time.time()
     out_dir = os.path.join(output_dir, "experiments")
     exps_to_export = exp_ids if export_all_runs else exps_and_runs
-    if experiment_filter:
-        filter_string = f"name ILIKE '%{experiment_filter}%'"
-        filtered = [ exp.experiment_id for exp in SearchExperimentsIterator(mlflow_client, filter=filter_string)]
-        exp_ids = exps_and_runs.keys()
-        exps_to_export = list(set(filtered).intersection(set(exp_ids)))
     res_exps = export_experiments.export_experiments(
         mlflow_client = mlflow_client,
         experiments = exps_to_export,
@@ -75,7 +67,6 @@ def export_models(
         export_deleted_runs = export_deleted_runs,
         notebook_formats = notebook_formats,
         use_threads = use_threads,
-        experiment_filter = experiment_filter
     )
     res_models = _export_models(
         mlflow_client,
@@ -191,11 +182,10 @@ def _export_models(
 @opt_export_version_model
 @opt_notebook_formats
 @opt_use_threads
-@opt_experiment_filter
 
 def main(models, output_dir, stages, export_latest_versions, export_all_runs, 
         export_permissions, export_deleted_runs, export_version_model, 
-        notebook_formats, use_threads, export_experiments, experiment_filter
+        notebook_formats, use_threads, export_experiments
     ):
     _logger.info("Options:")
     for k,v in locals().items():
@@ -211,7 +201,6 @@ def main(models, output_dir, stages, export_latest_versions, export_all_runs,
         export_version_model = export_version_model,
         notebook_formats = utils.string_to_list(notebook_formats),
         use_threads = use_threads,
-        experiment_filter = experiment_filter
     )
 
 
