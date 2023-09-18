@@ -55,22 +55,15 @@ def export_all(
         export_permissions = export_permissions,
         export_version_model = export_version_model,
         notebook_formats = notebook_formats,
-        use_threads = use_threads
+        use_threads = use_threads,
     )
 
     # Only import those experiments not exported by above export_models()
     exported_exp_names = res_models["experiments"]["experiment_names"]
-    all_exps = SearchExperimentsIterator(mlflow_client)
+    filter_string = f"name ILIKE '%{experiment_filter}%'" if experiment_filter else None
+    all_exps = SearchExperimentsIterator(mlflow_client, filter=filter_string)
     all_exp_names = [ exp.name for exp in all_exps ]
     remaining_exp_names = list(set(all_exp_names) - set(exported_exp_names))
-
-    if experiment_filter:
-        filtered_experiments = []
-        for exp_name in remaining_exp_names:
-            if experiment_filter in exp_name:
-                filtered_experiments.append(exp_name)
-        remaining_exp_names=filtered_experiments
-
     res_exps = export_experiments(
         mlflow_client = mlflow_client,
         experiments = remaining_exp_names,
@@ -119,7 +112,8 @@ def main(output_dir, stages, export_latest_versions, run_start_time,
          export_deleted_runs,
          export_version_model,
          export_permissions,
-         notebook_formats, use_threads,
+         notebook_formats,
+         use_threads,
          experiment_filter
          ):
     _logger.info("Options:")

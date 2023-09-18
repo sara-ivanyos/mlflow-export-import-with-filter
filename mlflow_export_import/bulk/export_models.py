@@ -17,7 +17,7 @@ from mlflow_export_import.common.click_options import (
     opt_export_deleted_runs,
     opt_export_version_model,
     opt_notebook_formats,
-    opt_use_threads
+    opt_use_threads,
 )
 from mlflow_export_import.common import utils, io_utils
 from mlflow_export_import.model.export_model import export_model
@@ -39,7 +39,7 @@ def export_models(
         export_version_model = False,
         notebook_formats = None,
         use_threads = False,
-        mlflow_client = None
+        mlflow_client = None,
     ):
     """
     :param: model_names: Can be either:
@@ -66,7 +66,7 @@ def export_models(
         export_permissions = export_permissions,
         export_deleted_runs = export_deleted_runs,
         notebook_formats = notebook_formats,
-        use_threads = use_threads
+        use_threads = use_threads,
     )
     res_models = _export_models(
         mlflow_client,
@@ -185,7 +185,7 @@ def _export_models(
 
 def main(models, output_dir, stages, export_latest_versions, export_all_runs, 
         export_permissions, export_deleted_runs, export_version_model, 
-        notebook_formats, use_threads
+        notebook_formats, use_threads, export_experiments
     ):
     _logger.info("Options:")
     for k,v in locals().items():
