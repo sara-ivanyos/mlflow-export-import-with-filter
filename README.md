@@ -1,3 +1,7 @@
+# Disclaimer
+
+This repository is an extension of the [MLflow Export Import](https://github.com/mlflow/mlflow-export-import) repository. 
+
 # MLflow Export Import
 
 The MLflow Export Import package provides tools to copy MLflow objects (runs, experiments or registered models) from one MLflow tracking server (Databricks workspace) to another.
